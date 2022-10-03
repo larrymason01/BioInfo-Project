@@ -17,22 +17,22 @@ plot(density(diff))
 ###Q2
 metadata_dir <- "./data/GSE127500/SraRunTable.txt"
 metadata <- read.csv(metadata_dir, sep=",")
+
+##Cut cDNA portion of metadata
 metadata <- subset(metadata, LibrarySelection != "cDNA")
-#metadata <- metadata[,c("Genotype")]
+
 
 counts <- counts[,order(colnames(counts))]
-colnames(counts) <- sub("_EB[0-9]+", "", colnames(counts))
-colnames(counts) <- sub("X", "", colnames(counts))
-colnames(counts) <- sub("Ct_D[0-9]", "Control", colnames(counts))
-
-rownames(metadata) <- metadata$Run
 metadata <- metadata[order(metadata$Genotype),]
 metadata <- metadata[c(25:28,1:24),]
+rownames(metadata) <- colnames(counts)
+# colnames(counts) <- sub("_EB[0-9]+", "", colnames(counts))
+# colnames(counts) <- sub("X", "", colnames(counts))
+# colnames(counts) <- sub("Ct_D[0-9]", "Control", colnames(counts))
 
 
-# rownames(metadata) <- colnames(counts)
-#library("DESeq2")
-# dds <- DESeqDataSetFromMatrix(countData = counts,
-#                               colData = metadata,
-#                               design = ~ Genotype)
-# dds
+library("DESeq2")
+dds <- DESeqDataSetFromMatrix(countData = round(counts),
+                              colData = metadata,
+                              design = ~ Genotype)
+dds
