@@ -6,10 +6,10 @@ row.names(counts) <- counts$GeneId
 counts <- subset(counts, select = -c(1))
 
 ##counts matrix already appears to be logarithmic
-counts <- log(counts + 1)
+countsLog <- log(counts + 1)
 
 #Calculate ranges and (WIP) plot density function
-ranges <- apply(X = counts, MARGIN = 1, FUN = range)
+ranges <- apply(X = countsLog, MARGIN = 1, FUN = range)
 diff <- ranges[2, ] - ranges[1, ]
 plot(density(diff))
 
@@ -38,14 +38,19 @@ dds
 
 dds <- DESeq(dds)
 resultsNames(dds) # lists the coefficients
-res <- results(dds, name="condition_untreated_vs_treated")
+res <- results(dds, name="Genotype_2B_vs_1B")
 # or to shrink log fold changes association with condition: 
 BiocManager::install("apeglm")
-res <- lfcShrink(dds, coef="condition_untreated_vs_treated", type="apeglm")
+res <- lfcShrink(dds, coef="Genotype_2B_vs_1B", type="apeglm")
 
 vsd <- vst(dds, blind=FALSE)
 rld <- rlog(dds, blind=FALSE)
 head(assay(vsd), 3)
 
-plotPCA(vsd, intgroup=c("condition", "type"))
+plotPCA(vsd, intgroup=c("Genotype"))
+
+library(M3C)
+data(pollen)
+tsne(pollen$data,colvec=c('gold'))
+
 
