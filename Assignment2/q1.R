@@ -10,4 +10,6 @@ counts <- subset(counts, select = -c(1))
 
 #Calculate ranges and (WIP) plot density function
 ranges <- apply(X = counts, MARGIN = 1, FUN = range)
+diff <- ranges[2, ] - ranges[1, ]
+plot(density(log(diff)))
 
