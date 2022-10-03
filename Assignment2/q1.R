@@ -30,9 +30,22 @@ rownames(metadata) <- colnames(counts)
 # colnames(counts) <- sub("X", "", colnames(counts))
 # colnames(counts) <- sub("Ct_D[0-9]", "Control", colnames(counts))
 
-
 library("DESeq2")
 dds <- DESeqDataSetFromMatrix(countData = round(counts),
                               colData = metadata,
                               design = ~ Genotype)
 dds
+
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+res <- results(dds, name="condition_untreated_vs_treated")
+# or to shrink log fold changes association with condition: 
+BiocManager::install("apeglm")
+res <- lfcShrink(dds, coef="condition_untreated_vs_treated", type="apeglm")
+
+vsd <- vst(dds, blind=FALSE)
+rld <- rlog(dds, blind=FALSE)
+head(assay(vsd), 3)
+
+plotPCA(vsd, intgroup=c("condition", "type"))
+
