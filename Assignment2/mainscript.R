@@ -35,13 +35,13 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
-#Plot PCA
+##Plot PCA
 vsd <- vst(dds, blind=TRUE)
 png(filename="./plots/PCA.png")
 plotPCA(vsd, intgroup=c("Genotype"))
 dev.off()
 
-#Plot UMAP
+##Plot UMAP
 library(umap)
 library(magrittr)
 library(ggplot2)
@@ -52,13 +52,13 @@ vsd_umap <- umap(normalized_vsd)
 vsd_umap_df <- data.frame(vsd_umap$layout) %>%
   tibble::rownames_to_column("sample")
 
-#group sample name based on count
+#group sample name based on count; create new count column expressing this data
 vsd_umap_df$count <- rep('control', nrow(vsd_umap_df))
 for (c in 1:7)
 {
   vsd_umap_df$count[grep(paste('^X', c, 'B', sep=""), vsd_umap_df$sample)] <- c
 }
-
+#plotting
 png(filename="./plots/UMAP.png")
 ggplot(
   vsd_umap_df,
@@ -74,9 +74,9 @@ dev.off()
 
 ###Q3###
 library(apeglm)
-#differential analysis, for now we are using control / 3B
+#differential analysis, for now we are using control / 1B
 dds_diff <- DESeq(dds)
-dds_diff_results <- results(dds_diff, contrast=c("Genotype", "Control", "3B"))
+dds_diff_results <- results(dds_diff, contrast=c("Genotype", "Control", "1B"))
 
 #clean up table
 results_df <- dds_diff_results %>%
@@ -85,8 +85,9 @@ results_df <- dds_diff_results %>%
   tibble::rownames_to_column("Gene") %>%
   # add a column for significance threshold results
   dplyr::mutate(threshold = padj < 0.05) %>%
-  # sort by log2foldchange
-  dplyr::arrange(dplyr::desc(log2FoldChange))
+  # sort by pval
+  dplyr::arrange(padj)
+
 #save as tsv
 library(readr)
 readr::write_tsv(
@@ -108,10 +109,18 @@ png(filename="./plots/Volcano.png")
 volcano_plot
 dev.off()
 
-#Heatmap
-library(ComplexHeatmap)
-sig <- as.matrix(head(results_df, 10))
-Heatmap(sig, name="name")
+
+###heatmap###
+top <- head(results_df, 30)
+crows <- as.matrix(counts[top$Gene,])
+library("circlize")
+library("ComplexHeatmap")
+col_fun = colorRamp2(c(0, 1000, 10000), c("green", "white", "red"))
+column_ha <- HeatmapAnnotation(Chromosome_count = rep(0:7, times=c(4, 4, 4, 4, 4, 2, 3, 3)))
+hm <- Heatmap(crows, name="Counts", col=col_fun, top_annotation = column_ha, row_names_gp = grid::gpar(fontsize = 10))
+png(filename="./plots/Heatmap.png")
+hm
+dev.off()
 
 
 
