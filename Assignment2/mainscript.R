@@ -78,17 +78,40 @@ library(apeglm)
 dds_diff <- DESeq(dds)
 dds_diff_results <- results(dds_diff, contrast=c("Genotype", "Control", "3B"))
 
+#clean up table
 results_df <- dds_diff_results %>%
   as.data.frame() %>%
   # the gene names are row names -- let's make them a column for easy display
   tibble::rownames_to_column("Gene") %>%
   # add a column for significance threshold results
   dplyr::mutate(threshold = padj < 0.05) %>%
-  # sort by statistic -- the highest values will be genes with
-  # higher expression in RPL10 mutated samples
+  # sort by log2foldchange
   dplyr::arrange(dplyr::desc(log2FoldChange))
+#save as tsv
 library(readr)
 readr::write_tsv(
   results_df,
   "./plots/difftable.tsv"
 )
+
+#volcano plot
+library(EnhancedVolcano)
+volcano_plot <- EnhancedVolcano::EnhancedVolcano(
+  results_df,
+  lab = results_df$Gene,
+  x = "log2FoldChange",
+  y = "padj",
+  pCutoff = 0.01, # Loosen the cutoff since we supplied corrected p-values
+  labSize = 3.0
+)
+png(filename="./plots/Volcano.png")
+volcano_plot
+dev.off()
+
+#Heatmap
+library(ComplexHeatmap)
+sig <- as.matrix(head(results_df, 10))
+Heatmap(sig, name="name")
+
+
+
