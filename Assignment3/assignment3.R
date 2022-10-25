@@ -36,12 +36,22 @@ results_df <- dds_diff_results %>%
   as.data.frame() %>%
   tibble::rownames_to_column("Gene") %>%
   dplyr::mutate(threshold = padj < 0.05) %>%
-  dplyr::arrange(dplyr::desc(log2FoldChange))
+  dplyr::arrange(pvalue)
+  #dplyr::arrange(dplyr::desc(pvalue))
 
 N = 5000
 topN <- head(results_df, N)
 topN_names <- topN$Gene
-newdata <- rowData(dds_diff)[c("baseMean", "baseVar")]
+rowdata <- rowData(dds_diff)
+
+#w/o DESeq
+newdatanls <- rowdata[c("baseMean", "baseVar")]
+newdatanls <- newdatanls[topN_names,]
+newdata <- data.frame(log(newdatanls[,1]), log(newdatanls[,2]))
+rownames(newdata) <- topN_names
+colnames(newdata) <- colnames(newdatanls)
+
+#from DESeq
 #newdata <- topN[c("log2FoldChange", "pvalue")]
 #rownames(newdata) <- topN$Gene
 
