@@ -74,6 +74,16 @@ fviz_cluster(km2, data = newdata,
              ggtheme = theme_bw()
 )
 
+library(cluster)
+
+pamCluster = pam(newData, K);
+fviz_cluster(pamCluster, data = newdata,
+             palette = cols[1:K], 
+             geom = "point",
+             ellipse.type = "convex", 
+             ggtheme = theme_bw()
+)
+
 
 ###CHI SQUARED TESTING###
 top_counts <- counts[topN_names,]
