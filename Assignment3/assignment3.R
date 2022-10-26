@@ -55,10 +55,17 @@ rowdata <- rowData(dds_diff)
 newdata <- topN[c("log2FoldChange", "pvalue")]
 rownames(newdata) <- topN$Gene
 
+#test
+# rns <- rownames(newdata)
+# cns <- colnames(newdata)
+# newdata <- data.frame(replicate(2,sample(0:100,5000,rep=TRUE)))
+# rownames(newdata) <- rns
+# colnames(newdata) <- cns
+
 cols <- c("#210b1a", "#18125c", "#f54242", "#f5bc42", "#66f542", "#4287f5", "#c842f5")
 
 K <- 8
-km2 <- kmeans(newdata, K, iter.max=9999)
+km2 <- kmeans(newdata, K, iter.max=1000)
 library(factoextra)
 fviz_cluster(km2, data = newdata,
              palette = cols[1:K], 
@@ -81,9 +88,10 @@ for (rn in rownames(top_counts)) {
 }
 
 grouped_chi_table <- data.frame(matrix(0, nrow=K, ncol=8))
-colnames(grouped_chi_table) <- list("Control", "1B", "2B", "3B", "4B", "5B", "6B", "7B")
+colnames(grouped_chi_table) <- list("7B", "2B", "3B", "6B", "Control", "1B", "5B", "4B")
 for (cn in colnames(chi_table)) {
   group <- metadata[cn, "Genotype"]
   grouped_chi_table[,group] <- grouped_chi_table[,group]+ chi_table[,cn]
 }
-csq <- chisq.test(cs_group)
+csq <- chisq.test(log(as.matrix(grouped_chi_table)))
+csq
