@@ -39,7 +39,7 @@ results_df <- dds_diff_results %>%
   dplyr::arrange(pvalue)
   #dplyr::arrange(dplyr::desc(pvalue))
 
-N = 100
+N = 5000
 topN <- head(results_df, N)
 topN_names <- topN$Gene
 rowdata <- rowData(dds_diff)
@@ -58,7 +58,7 @@ colnames(newdata) <- colnames(newdatanls)
 #test
 # rns <- rownames(newdata)
 # cns <- colnames(newdata)
-# newdata <- data.frame(replicate(2,sample(0:100,5000,rep=TRUE)))
+# newdata <- data.frame(replicate(2,sample(0:100,N,rep=TRUE)))
 # rownames(newdata) <- rns
 # colnames(newdata) <- cns
 
@@ -88,12 +88,55 @@ fviz_cluster(pamCluster, data = newdata,
              ggtheme = theme_bw()
 )
 
+#Hierarchical
+dist_mat <- dist(newdata, method = 'euclidean')
+hcl <- hclust(dist_mat, method = 'average')
+hierarchicalCl <- cutree(hcl, k = 8)
+cl <- as.data.frame(hierarchicalCl)
+
+cldata <- merge(cl, counts, by='row.names')
+names(cldata)[1] <- "Gene"
+names(cldata)[2] <- "Cluster #"
+
+logdata <- log(cldata[, 3:30] + 1)
+
+logdata["Gene"] <- cldata[,1]
+logdata["ClusterNum"] <- cldata[,2]
+logdata <- logdata[order(logdata$ClusterNum),]
+
+testld <- logdata[,1:28]
+
+testld <- as.matrix(testld)
+
+library("ComplexHeatmap")
+row_ha <- rowAnnotation(foo1= logdata$ClusterNum)
+hm <- Heatmap(testld, cluster_rows = FALSE, row_names_gp = gpar(fontsize=4), right_annotation = row_ha)
+hm
+
+#heatmap
+cldata <- merge(pamCluster$clustering, counts, by='row.names')
+names(cldata)[1] <- "Gene"
+names(cldata)[2] <- "Cluster #"
+logdata <- log(cldata[, 3:30] + 1)
+logdata["Gene"] <- cldata[,1]
+logdata["ClusterNum"] <- cldata[,2]
+logdata <- logdata[order(logdata$ClusterNum),]
+testld <- logdata[,1:28]
+testld <- as.matrix(testld)
+library("ComplexHeatmap")
+library("circlize")
+col_fun = colorRamp2(c(0, 1), c("green", "white"))
+col_fun2 = colorRamp2(c(0, 1), c("blue", "white"))
+row_ha <- rowAnnotation(col=list(Cluster_Num = col_fun2), Cluster_Num= logdata$ClusterNum)
+column_ha <- HeatmapAnnotation(col=list(chromosome_count = col_fun), Chromosome_count = rep(0:7, times=c(4, 4, 4, 4, 4, 2, 3, 3)))
+hm <- Heatmap(testld, name = "Log Scaled Counts", row_names_gp = gpar(fontsize=4), top_annotation = column_ha, right_annotation = row_ha, row_labels = rep("", N) )
+hm
+
 
 ###CHI SQUARED TESTING###
 chisquaredtest <- function(cluster_vector)
 {
   top_counts <- log(counts[topN_names,] + 1)
-  chi_table <- data.frame(matrix(0, nrow=K, ncol=28))
   colnames(chi_table) <- colnames(top_counts)
   for (rn in rownames(top_counts)) {
     clusternum <- cluster_vector[rn]
@@ -115,6 +158,6 @@ chisquaredtest <- function(cluster_vector)
   return(grouped_chi_table)
 }
 
-grouped_chi_table <- chisquaredtest(pamCluster$clustering)
-chisq.test(grouped_chi_table)
+grouped_chi_table <- chisquaredtest(hierarchicalCl)
+chisq.test(grouped_chi_table, simulate.p.value=TRUE)
 grouped_chi_table
