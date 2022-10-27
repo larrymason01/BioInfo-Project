@@ -67,7 +67,7 @@ cols <- c("#210b1a", "#18125c", "#f54242", "#f5bc42", "#66f542", "#4287f5", "#c8
 #KMEANS
 K <- 8
 km2 <- kmeans(newdata, centers=K, iter.max=1000)
-centers <- km2$centers[order(km2$centers[,1],decreasing=FALSE),]
+centers <- km2$centers[order(km2$centers[,1],decreasing=TRUE),]
 rownames(centers) <- 1:8
 km2 <- kmeans(newdata, centers=centers, iter.max=1000)
 library(factoextra)
@@ -114,7 +114,7 @@ hm <- Heatmap(testld, cluster_rows = FALSE, row_names_gp = gpar(fontsize=4), rig
 hm
 
 #heatmap
-cldata <- merge(pamCluster$clustering, counts, by='row.names')
+cldata <- merge(cc_vector, counts, by='row.names')
 names(cldata)[1] <- "Gene"
 names(cldata)[2] <- "Cluster #"
 logdata <- log(cldata[, 3:30] + 1)
@@ -125,18 +125,20 @@ testld <- logdata[,1:28]
 testld <- as.matrix(testld)
 library("ComplexHeatmap")
 library("circlize")
-col_fun = colorRamp2(c(0, 1), c("green", "white"))
-col_fun2 = colorRamp2(c(0, 1), c("blue", "white"))
+col_fun = colorRamp2(c(0, 8), c("white", "green"))
+col_fun2 = colorRamp2(c(0, 8), c("white", "blue"))
 row_ha <- rowAnnotation(col=list(Cluster_Num = col_fun2), Cluster_Num= logdata$ClusterNum)
-column_ha <- HeatmapAnnotation(col=list(chromosome_count = col_fun), Chromosome_count = rep(0:7, times=c(4, 4, 4, 4, 4, 2, 3, 3)))
-hm <- Heatmap(testld, name = "Log Scaled Counts", row_names_gp = gpar(fontsize=4), top_annotation = column_ha, right_annotation = row_ha, row_labels = rep("", N) )
+column_ha <- HeatmapAnnotation(col=list(Chromosome_count = col_fun), Chromosome_count = rep(0:7, times=c(4, 4, 4, 4, 4, 2, 3, 3)))
+hm <- Heatmap(testld, name = "Log Scaled Counts", row_names_gp = gpar(fontsize=4), top_annotation = column_ha, right_annotation = row_ha, row_labels = rep("", 1000) )
 hm
+
 
 
 ###CHI SQUARED TESTING###
 chisquaredtest <- function(cluster_vector)
 {
   top_counts <- log(counts[topN_names,] + 1)
+  chi_table <- data.frame(matrix(0, nrow=K, ncol=28))
   colnames(chi_table) <- colnames(top_counts)
   for (rn in rownames(top_counts)) {
     clusternum <- cluster_vector[rn]
@@ -158,6 +160,25 @@ chisquaredtest <- function(cluster_vector)
   return(grouped_chi_table)
 }
 
-grouped_chi_table <- chisquaredtest(hierarchicalCl)
-chisq.test(grouped_chi_table, simulate.p.value=TRUE)
-grouped_chi_table
+grouped_chi_table_pam <- chisquaredtest(pamCluster$clustering)
+grouped_chi_table_km <- chisquaredtest(km2$cluster)
+grouped_chi_table_hierarchical <- chisquaredtest(hierarchicalCl)
+grouped_chi_table_cc <- chisquaredtest(cc_vector)
+
+#temp
+# cc <- read.csv(file = 'data/consensus_clustering_vect.csv')
+# cc_vector <-  cc$ccp_res
+# names(cc_vector) <- cc[,1]
+
+sum_pam <- rowSums(grouped_chi_table_pam)
+sum_km <- rowSums(grouped_chi_table_km)
+sum_hierarchical <- rowSums(grouped_chi_table_hierarchical)
+
+pam_km <- data.frame(sum_pam, sum_km)
+pam_hierarchical <- data.frame(sum_pam, sum_hierarchical)
+km_hierarchical <- data.frame(sum_km, sum_hierarchical)
+
+chisq.test(pam_km)
+chisq.test(pam_hierarchical)
+chisq.test(km_hierarchical)
+p <- list(chisq.test(pam_km)$p.val, chisq.test(pam_hierarchical)$p.val, chisq.test(km_hierarchical)$p.val)
