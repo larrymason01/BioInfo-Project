@@ -1,3 +1,4 @@
+setwd("Bioinfo-Project/Assignment3")
 #Directories
 counts_dir <- "./data/GSE127500/GSE127500_Counts_TE.txt"
 metadata_dir <- "./data/GSE127500/SraRunTable.txt"
@@ -113,8 +114,23 @@ row_ha <- rowAnnotation(foo1= logdata$ClusterNum)
 hm <- Heatmap(testld, cluster_rows = FALSE, row_names_gp = gpar(fontsize=4), right_annotation = row_ha)
 hm
 
+library(mclust)
+res <- Mclust(newdata)
+res1 <- Mclust(newdata, x = res$BIC)
+GMMres <- res1$classification
+plot(res1, what = "classification")
+resDR <- MclustDR(res)
+plot(resDR, what = "contour")
+# #ConsensusClustering
+# library(ConsensusClusterPlus)
+# library(data.table)
+# t_newdata <- t(as.matrix(newdata))
+# ccp <- ConsensusClusterPlus(t_newdata, maxK = 8)
+# ccp_res <- ccp[[8]]$consensusClass
+
+
 #heatmap
-cldata <- merge(cc_vector, counts, by='row.names')
+cldata <- merge(GMMres, counts, by='row.names')
 names(cldata)[1] <- "Gene"
 names(cldata)[2] <- "Cluster #"
 logdata <- log(cldata[, 3:30] + 1)
@@ -129,7 +145,7 @@ col_fun = colorRamp2(c(0, 8), c("white", "green"))
 col_fun2 = colorRamp2(c(0, 8), c("white", "blue"))
 row_ha <- rowAnnotation(col=list(Cluster_Num = col_fun2), Cluster_Num= logdata$ClusterNum)
 column_ha <- HeatmapAnnotation(col=list(Chromosome_count = col_fun), Chromosome_count = rep(0:7, times=c(4, 4, 4, 4, 4, 2, 3, 3)))
-hm <- Heatmap(testld, name = "Log Scaled Counts", row_names_gp = gpar(fontsize=4), top_annotation = column_ha, right_annotation = row_ha, row_labels = rep("", 1000) )
+hm <- Heatmap(testld, name = "Log Scaled Counts", row_names_gp = gpar(fontsize=4), top_annotation = column_ha, right_annotation = row_ha, row_labels = rep("", N) )
 hm
 
 
@@ -163,7 +179,7 @@ chisquaredtest <- function(cluster_vector)
 grouped_chi_table_pam <- chisquaredtest(pamCluster$clustering)
 grouped_chi_table_km <- chisquaredtest(km2$cluster)
 grouped_chi_table_hierarchical <- chisquaredtest(hierarchicalCl)
-grouped_chi_table_cc <- chisquaredtest(cc_vector)
+grouped_chi_table_GMM <- chisquaredtest(GMMres)
 
 #temp
 # cc <- read.csv(file = 'data/consensus_clustering_vect.csv')
@@ -173,12 +189,17 @@ grouped_chi_table_cc <- chisquaredtest(cc_vector)
 sum_pam <- rowSums(grouped_chi_table_pam)
 sum_km <- rowSums(grouped_chi_table_km)
 sum_hierarchical <- rowSums(grouped_chi_table_hierarchical)
+sum_GMM <- rowSums(grouped_chi_table_GMM)
 
 pam_km <- data.frame(sum_pam, sum_km)
 pam_hierarchical <- data.frame(sum_pam, sum_hierarchical)
+pam_GMM <- data.frame(sum_pam, sum_GMM)
 km_hierarchical <- data.frame(sum_km, sum_hierarchical)
+km_GMM <- data.frame(sum_km, sum_GMM)
+GMM_hierarchical <- data.frame(sum_hierarchical, sum_GMM)
 
 chisq.test(pam_km)
 chisq.test(pam_hierarchical)
 chisq.test(km_hierarchical)
 p <- list(chisq.test(pam_km)$p.val, chisq.test(pam_hierarchical)$p.val, chisq.test(km_hierarchical)$p.val)
+p.adjust(p, method = p.adjust.methods, n = length(p))
