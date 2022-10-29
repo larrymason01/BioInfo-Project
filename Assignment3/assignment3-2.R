@@ -128,6 +128,33 @@ plot(resDR, what = "contour")
 # ccp <- ConsensusClusterPlus(t_newdata, maxK = 8)
 # ccp_res <- ccp[[8]]$consensusClass
 
+# Alluvial diagram
+
+# For creating the 10k input in the gmm diagram, a similar process was used
+# to create the diagrams for other clustering methods
+
+cl <- as.data.frame(res1$classification)
+freq10k_gmm<- table(cl['res1$classification'])
+freq10k_gmm <- as.data.frame(freq10k_gmm)
+freq10k_gmm$Freq <- as.numeric(freq10k_gmm$Freq) / 10000
+
+freq10k_gmm <- cbind(genecount = 10000, freq10k_gmm)
+
+
+# As the workspace in R saves variables, the above code was altered each time 
+# to create each input based on the number of genes. 
+alluvtable <- rbind(freq10_gmm, freq100_gmm, freq1k_gmm, freq10k_gmm)
+alluvtable <- cbind(map = TRUE, alluvtable)
+
+ggplot(as.data.frame(alluvtable),
+       aes(y = Freq, axis1 = genecount, axis2 = res1.classification)) +
+  geom_alluvium(aes(fill = map), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits = c("Gene Count", "Cluster"), expand = c(0.05, 0.05)) +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+  ggtitle("Cluster Size Comparison by Percentage (GMM Clustering)")
+
 
 #heatmap
 cldata <- merge(GMMres, counts, by='row.names')
